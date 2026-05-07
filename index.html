@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CyberTermux — Remote Support Dashboard</title>
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <!-- Font Awesome 6 (free) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- particles.js (lightweight) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particlesjs/2.2.3/particles.min.js">
+    </script>
+
+    <style>
+        /* ── Cyberpunk Fonts ── */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
+        /* ── Root Variables ── */
+        :root {
+            --neon-green: #00ff41;
+            --neon-cyan: #00f0ff;
+            --neon-purple: #b300ff;
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(10, 10, 20, 0.75);
+            --glass-border: rgba(0, 255, 65, 0.15);
+            --glow-green: 0 0 10px rgba(0, 255, 65, 0.4), 0 0 30px rgba(0, 255, 65, 0.1);
+            --glow-cyan: 0 0 10px rgba(0, 240, 255, 0.4), 0 0 30px rgba(0, 240, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: #d4d4d4;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-green); border-radius: 3px; }
+
+        /* ── Canvas behind everything ── */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── Matrix Rain Canvas (overlay) ── */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+
+        /* ── Main Wrapper ── */
+        .app-wrapper {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Scanline overlay ── */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 65, 0.015) 2px,
+                rgba(0, 255, 65, 0.015) 4px
+            );
+        }
+
+        /* ── Glass Card ── */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 255, 65, 0.35);
+            box-shadow: var(--glow-green), 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        /* ── Neon Text ── */
+        .neon-green { color: var(--neon-green); text-shadow: 0 0 7px rgba(0,255,65,0.5); }
+        .neon-cyan { color: var(--neon-cyan); text-shadow: 0 0 7px rgba(0,240,255,0.5); }
+        .neon-purple { color: var(--neon-purple); text-shadow: 0 0 7px rgba(179,0,255,0.5); }
+
+        .font-cyber { font-family: 'Orbitron', monospace; letter-spacing: 1px; }
+        .font-term { font-family: 'Fira Code', 'Courier New', monospace; }
+        .font-body { font-family: 'Rajdhani', sans-serif; }
+
+        /* ── Buttons ── */
+        .btn-neon {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border: 1px solid var(--neon-green);
+            border-radius: 8px;
+            background: rgba(0, 255, 65, 0.06);
+            color: var(--neon-green);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 8px rgba(0,255,65,0.15);
+        }
+        .btn-neon:hover {
+            background: rgba(0, 255, 65, 0.15);
+            box-shadow: 0 0 20px rgba(0,255,65,0.4), inset 0 0 20px rgba(0,255,65,0.05);
+            transform: translateY(-1px);
+        }
+        .btn-neon:active { transform: scale(0.97); }
+
+        .btn-cyan {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.06);
+            box-shadow: 0 0 8px rgba(0,240,255,0.15);
+        }
+        .btn-cyan:hover {
+            background: rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0,240,255,0.4), inset 0 0 20px rgba(0,240,255,0.05);
+        }
+
+        .btn-danger {
+            border-color: #ff3355;
+            color: #ff3355;
+            background: rgba(255, 51, 85, 0.06);
+            box-shadow: 0 0 8px rgba(255,51,85,0.15);
+        }
+        .btn-danger:hover {
+            background: rgba(255, 51, 85, 0.15);
+            box-shadow: 0 0 20px rgba(255,51,85,0.4);
+        }
+
+        /* ── Terminal ── */
+        .terminal-window {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 12px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            overflow: hidden;
+        }
+        .terminal-header {
+            background: rgba(0, 20, 10, 0.6);
+            border-bottom: 1px solid rgba(0, 255, 65, 0.15);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .terminal-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .terminal-body {
+            padding: 14px;
+            min-height: 200px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .terminal-body .log-line {
+            opacity: 0;
+            animation: fadeInLog 0.3s ease forwards;
+        }
+        .terminal-body .prompt { color: var(--neon-green); }
+        .terminal-body .cmd { color: #e0e0e0; }
+        .terminal-body .output { color: #9e9e9e; }
+        .terminal-body .info { color: var(--neon-cyan); }
+        .terminal-body .warn { color: #ffaa00; }
+        .terminal-body .error { color: #ff3355; }
+        .terminal-body .success { color: var(--neon-green); }
+
+        @keyframes fadeInLog {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Loading Bar ── */
+        .load-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .load-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+            box-shadow: 0 0 12px rgba(0,255,65,0.4);
+            transition: width 0.3s ease;
+            animation: loadGlow 1.5s ease-in-out infinite alternate;
+        }
+        @keyframes loadGlow {
+            0% { box-shadow: 0 0 6px rgba(0,255,65,0.3); }
+            100% { box-shadow: 0 0 18px rgba(0,240,255,0.5); }
+        }
+
+        /* ── Device status indicator ── */
+        .status-dot {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse-dot 1.8s ease-in-out infinite;
+        }
+        .status-dot.online { background: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,65,0.7); }
+        .status-dot.offline { background: #555; box-shadow: none; animation: none; }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        /* ── Notifications ── */
+        .notif-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+            width: calc(100% - 40px);
+            pointer-events: none;
+        }
+        .notif-toast {
+            pointer-events: auto;
+            background: rgba(5, 5, 15, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.7), var(--glow-green);
+            transform: translateX(120%);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .notif-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .notif-toast.hide {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+        .notif-toast .notif-icon { font-size: 1.3rem; min-width: 28px; }
+        .notif-toast .notif-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+        .notif-toast .notif-close:hover { color: #fff; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 260px;
+            height: 100%;
+            z-index: 5000;
+            background: rgba(5, 5, 20, 0.92);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(0, 255, 65, 0.12);
+            transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 24px 16px;
+            overflow-y: auto;
+            box-shadow: 4px 0 40px rgba(0,0,0,0.6);
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-backdrop {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 4999;
+            background: rgba(0,0,0,0.6);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-backdrop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            color: #aaa;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            color: var(--neon-green);
+            background: rgba(0, 255, 65, 0.06);
+            border-color: rgba(0, 255, 65, 0.15);
+            box-shadow: 0 0 12px rgba(0,255,65,0.05);
+        }
+        .sidebar .logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 8px 0 20px 0;
+            border-bottom: 1px solid rgba(0,255,65,0.1);
+            margin-bottom: 16px;
+        }
+
+        /* ── QR placeholder ── */
+        .qr-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            border: 2px dashed rgba(0,255,65,0.15);
+            aspect-ratio: 1;
+            max-width: 160px;
+            margin: 0 auto;
+            transition: all 0.3s;
+        }
+        .qr-box:hover {
+            border-color: rgba(0,255,65,0.35);
+            box-shadow: 0 0 20px rgba(0,255,65,0.08);
+        }
+
+        /* ── Utility ── */
+        .glow-border-bottom {
+            border-bottom: 1px solid rgba(0, 255, 65, 0.08);
+        }
+
+        /* ── Responsive tweaks ── */
+        @media (max-width: 640px) {
+            .terminal-body { min-height: 150px; max-height: 200px; font-size: 0.75rem; }
+            .btn-neon { font-size: 0.65rem; padding: 8px 16px; }
+            .notif-container { top: 10px; right: 10px; max-width: calc(100% - 20px); width: calc(100% - 20px); }
+        }
+
+        /* ── Glitch text effect ── */
+        .glitch {
+            position: relative;
+        }
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0.7;
+        }
+        .glitch::before {
+            color: var(--neon-cyan);
+            z-index: -1;
+            animation: glitch-shift 3s infinite linear alternate-reverse;
+        }
+        .glitch::after {
+            color: var(--neon-purple);
+            z-index: -2;
+            animation: glitch-shift 2s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-shift {
+            0% { transform: translate(0); }
+            20% { transform: translate(-1px, 1px); }
+            40% { transform: translate(1px, -1px); }
+            60% { transform: translate(-1px, -1px); }
+            80% { transform: translate(1px, 1px); }
+            100% { transform: translate(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══ SCANLINES ═══ -->
+    <div class="scanlines"></div>
+
+    <!-- ═══ PARTICLES CANVAS ═══ -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- ═══ MATRIX RAIN CANVAS ═══ -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- ═══ NOTIFICATION CONTAINER ═══ -->
+    <div id="notif-container" class="notif-container"></div>
+
+    <!-- ═══ SIDEBAR BACKDROP ═══ -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <nav id="sidebar" class="sidebar">
+        <div class="logo neon-green">
+            <i class="fas fa-terminal me-2"></i> CyberTermux
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+            <a href="#" class="active" onclick="closeSidebar();return false;"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="#" onclick="closeSidebar();return false;"><i class="fas fa-mobile-alt"></i> Devices</a>
+            <a href="#" onclick="closeSidebar();return false;"><i class="fas fa-terminal"></i> Terminal</a>
+            <a href="#" onclick="closeSidebar();return false;"><i class="fas fa-qrcode"></i> QR Connect</a>
+            <a href="#" onclick="closeSidebar();return false;"><i class="fas fa-share-alt"></i> Share Link</a>
+            <a href="#" onclick="closeSidebar();return false;"><i class="fas fa-chart-line"></i> Analytics</a>
+            <a href="#" onclick="closeSidebar();false;" style="margin-top:16px;border-top:1px solid rgba(0,255,65,0.08);padding-top:20px;color:#666;">
+                <i class="fas fa-cog"></i> Settings
+            </a>
+            <a href="#" onclick="closeSidebar();return false;" style="color:#666;">
+                <i class="fas fa-question-circle"></i> About
+            </a>
+        </div>
+        <div style="margin-top:auto;padding-top:20px;font-size:0.7rem;color:#444;font-family:'Fira Code',monospace;">
+            v3.1.2 // SECURE CONNECTION
+        </div>
+    </nav>
+
+    <!-- ═══ MAIN APP ═══ -->
+    <div class="app-wrapper">
+
+        <!-- ─── TOP BAR ─── -->
+        <header style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(5,5,20,0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,255,65,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        ">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <button onclick="toggleSidebar()" class="btn-neon" style="padding:8px 12px;font-size:1rem;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <span class="font-cyber neon-green" style="font-size:1rem;font-weight:700;">CYBERTERMUX</span>
+                    <span class="font-term" style="font-size:0.65rem;color:#666;display:block;margin-top:-2px;">REMOTE SUPPORT v3.1.2</span>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span id="status-badge" class="font-term" style="font-size:0.7rem;display:flex;align-items:center;">
+                    <span class="status-dot online" id="status-dot"></span>
+                    <span id="status-text" style="color:var(--neon-green);">ONLINE</span>
+                </span>
+                <span style="color:#444;font-size:0.9rem;display:none;" class="sm:inline-block">
+                    <i class="fas fa-signal"></i>
+                </span>
+            </div>
+        </header>
+
+        <!-- ─── MAIN CONTENT ─── -->
+        <main style="flex:1;padding:16px;max-width:1280px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px;">
+
+            <!-- ── ROW 1: Dashboard Title ── -->
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <div>
+                    <h1 class="font-cyber neon-green glitch" data-text="DASHBOARD" style="font-size:1.5rem;font-weight:700;letter-spacing:2px;">DASHBOARD</h1>
+                    <p class="font-term" style="font-size:0.7rem;color:#666;margin-top:2px;">ACTIVE SESSION // ENCRYPTED TUNNEL</p>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn-neon btn-cyan" onclick="simulateConnect()">
+                        <i class="fas fa-plug"></i> Connect Device
+                    </button>
+                    <button class="btn-neon" onclick="pushNotif('info','System','Diagnostic scan initiated.')">
+                        <i class="fas fa-sync-alt"></i> Scan
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── ROW 2: Stats Cards ── -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+
+                <div class="glass-card" style="padding:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="font-term" style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:1px;">Devices</span>
+                        <i class="fas fa-mobile-alt neon-green" style="font-size:1.1rem;"></i>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <span class="font-cyber neon-green" style="font-size:1.6rem;font-weight:700;" id="device-count">3</span>
+                        <span class="font-term" style="font-size:0.65rem;color:#666;margin-left:6px;">online</span>
+                    </div>
+                    <div class="load-bar" style="margin-top:8px;"><div class="load-bar-fill" style="width:72%;"></div></div>
+                </div>
+
+                <div class="glass-card" style="padding:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="font-term" style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:1px;">Network</span>
+                        <i class="fas fa-wifi neon-cyan" style="font-size:1.1rem;"></i>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <span class="font-cyber neon-cyan" style="font-size:1.6rem;font-weight:700;">847</span>
+                        <span class="font-term" style="font-size:0.65rem;color:#666;margin-left:6px;">Mbps</span>
+                    </div>
+                    <div class="load-bar" style="margin-top:8px;"><div class="load-bar-fill" style="width:88%;background:linear-gradient(90deg,var(--neon-cyan),#7b2ff7);"></div></div>
+                </div>
+
+                <div class="glass-card" style="padding:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="font-term" style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:1px;">RAM</span>
+                        <i class="fas fa-microchip neon-purple" style="font-size:1.1rem;"></i>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <span class="font-cyber" style="font-size:1.6rem;font-weight:700;color:var(--neon-purple);">6.2</span>
+                        <span class="font-term" style="font-size:0.65rem;color:#666;margin-left:6px;">/ 8 GB</span>
+                    </div>
+                    <div class="load-bar" style="margin-top:8px;"><div class="load-bar-fill" style="width:78%;background:linear-gradient(90deg,var(--neon-purple),var(--neon-cyan));"></div></div>
+                </div>
+
+                <div class="glass-card" style="padding:16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="font-term" style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:1px;">Battery</span>
+                        <i class="fas fa-battery-three-quarters neon-green" style="font-size:1.1rem;"></i>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <span class="font-cyber neon-green" style="font-size:1.6rem;font-weight:700;" id="battery-pct">87</span>
+                        <span class="font-term" style="font-size:0.65rem;color:#666;margin-left:6px;">%</span>
+                    </div>
+                    <div class="load-bar" style="margin-top:8px;"><div class="load-bar-fill" style="width:87%;" id="battery-bar"></div></div>
+                </div>
+            </div>
+
+            <!-- ── ROW 3: Two columns ── -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+                <!-- LEFT: Terminal + Device Info -->
+                <div style="display:flex;flex-direction:column;gap:16px;">
+
+                    <!-- Terminal -->
+                    <div class="glass-card" style="overflow:hidden;padding:0;">
+                        <div style="padding:12px 16px;border-bottom:1px solid rgba(0,255,65,0.06);display:flex;justify-content:space-between;align-items:center;">
+                            <span class="font-cyber neon-green" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-terminal"></i> LIVE TERMINAL</span>
+                            <div style="display:flex;gap:8px;">
+                                <button class="btn-neon" style="padding:4px 12px;font-size:0.6rem;" onclick="clearTerminal()">Clear</button>
+                                <button class="btn-neon btn-cyan" style="padding:4px 12px;font-size:0.6rem;" onclick="runFakeCommands()">Run</button>
+                            </div>
+                        </div>
+                        <div class="terminal-window" style="border:none;border-radius:0;">
+                            <div class="terminal-header">
+                                <span class="terminal-dot" style="background:#ff5f56;"></span>
+                                <span class="terminal-dot" style="background:#ffbd2e;"></span>
+                                <span class="terminal-dot" style="background:#27c93f;"></span>
+                                <span class="font-term" style="font-size:0.6rem;color:#666;margin-left:8px;">root@cybertermux:~$</span>
+                            </div>
+                            <div class="terminal-body" id="terminal-body">
+                                <div class="log-line"><span class="info">[SYSTEM]</span> <span class="output">Termux remote session initialized.</span></div>
+                                <div class="log-line"><span class="info">[NET ]</span> <span class="output">Tunnel established on port 4444</span></div>
+                                <div class="log-line"><span class="info">[AUTH]</span> <span class="output">RSA key fingerprint verified.</span></div>
+                                <div class="log-line" style="margin-top:6px;"><span class="prompt">root@cybertermux:~$</span> <span class="cmd">_</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device Info Card -->
+                    <div class="glass-card" style="padding:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <span class="font-cyber neon-cyan" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-info-circle"></i> DEVICE INFO</span>
+                            <span class="font-term" style="font-size:0.6rem;color:#555;">CONNECTED</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:0.85rem;">
+                            <span class="font-term" style="color:#888;">Model</span>
+                            <span class="font-term" style="color:#ddd;">Pixel 9 Pro</span>
+                            <span class="font-term" style="color:#888;">OS</span>
+                            <span class="font-term" style="color:#ddd;">Android 16 / Termux</span>
+                            <span class="font-term" style="color:#888;">Kernel</span>
+                            <span class="font-term" style="color:#ddd;">6.1.57-g274a3b2</span>
+                            <span class="font-term" style="color:#888;">IP</span>
+                            <span class="font-term" style="color:var(--neon-green);">10.0.0.47</span>
+                            <span class="font-term" style="color:#888;">Uptime</span>
+                            <span class="font-term" style="color:var(--neon-cyan);">14d 7h 32m</span>
+                            <span class="font-term" style="color:#888;">Session</span>
+                            <span class="font-term" style="color:#999;">SSH-2 / ECDSA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: QR + Link Sharing + Fake Devices -->
+                <div style="display:flex;flex-direction:column;gap:16px;">
+
+                    <!-- QR Connect -->
+                    <div class="glass-card" style="padding:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <span class="font-cyber neon-green" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-qrcode"></i> QR CONNECT</span>
+                            <span class="font-term" style="font-size:0.6rem;color:#555;">SCAN TO LINK</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                            <div class="qr-box" style="width:120px;height:120px;">
+                                <div style="text-align:center;color:#555;">
+                                    <i class="fas fa-qrcode" style="font-size:3rem;opacity:0.3;"></i>
+                                    <div class="font-term" style="font-size:0.55rem;margin-top:4px;">[QR CODE]</div>
+                                </div>
+                            </div>
+                            <div style="flex:1;min-width:140px;">
+                                <div class="font-term" style="font-size:0.7rem;color:#aaa;margin-bottom:6px;">
+                                    Scan with Termux:<br/>
+                                    <span class="neon-green" style="font-size:0.8rem;">termux-qr connect</span>
+                                </div>
+                                <button class="btn-neon btn-cyan" style="font-size:0.6rem;padding:6px 14px;" onclick="pushNotif('success','QR','QR code regenerated successfully.')">
+                                    <i class="fas fa-sync-alt"></i> Regenerate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Link Sharing -->
+                    <div class="glass-card" style="padding:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <span class="font-cyber neon-purple" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-share-alt"></i> SHARE LINK</span>
+                            <button class="btn-neon" style="padding:4px 12px;font-size:0.6rem;" onclick="copyShareLink()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <div style="
+                            background: rgba(0,0,0,0.4);
+                            border: 1px solid rgba(255,255,255,0.06);
+                            border-radius: 8px;
+                            padding: 10px 14px;
+                            font-family: 'Fira Code', monospace;
+                            font-size: 0.75rem;
+                            color: var(--neon-cyan);
+                            word-break: break-all;
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                        ">
+                            <i class="fas fa-link" style="opacity:0.4;"></i>
+                            <span id="share-link-text">https://termux.link/a7f3k2/remote-support</span>
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                            <button class="btn-neon" style="font-size:0.6rem;padding:6px 14px;" onclick="pushNotif('info','Share','Link shared via SMS')"><i class="fas fa-sms"></i> SMS</button>
+                            <button class="btn-neon btn-cyan" style="font-size:0.6rem;padding:6px 14px;" onclick="pushNotif('info','Share','Link shared via WhatsApp')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                            <button class="btn-neon" style="font-size:0.6rem;padding:6px 14px;border-color:#666;color:#888;" onclick="pushNotif('info','Share','Link copied to clipboard')"><i class="fas fa-clipboard"></i> Clipboard</button>
+                        </div>
+                    </div>
+
+                    <!-- Connected Devices Panel -->
+                    <div class="glass-card" style="padding:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <span class="font-cyber neon-green" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-plug"></i> CONNECTED DEVICES</span>
+                            <span class="font-term" style="font-size:0.6rem;color:#555;"><span id="device-count-small">3</span> active</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;" id="device-list">
+                            <div class="device-item" style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(0,255,65,0.03);border-radius:8px;border:1px solid rgba(0,255,65,0.08);">
+                                <i class="fas fa-mobile-alt neon-green"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="font-term" style="font-size:0.8rem;color:#ddd;">Pixel 9 Pro — <span class="neon-green">Termux</span></div>
+                                    <div class="font-term" style="font-size:0.6rem;color:#666;">10.0.0.47 • SSH • 14d uptime</div>
+                                </div>
+                                <span class="status-dot online"></span>
+                            </div>
+                            <div class="device-item" style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(0,240,255,0.03);border-radius:8px;border:1px solid rgba(0,240,255,0.08);">
+                                <i class="fas fa-tablet-alt neon-cyan"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="font-term" style="font-size:0.8rem;color:#ddd;">Samsung Tab S10 — <span class="neon-cyan">Termux</span></div>
+                                    <div class="font-term" style="font-size:0.6rem;color:#666;">10.0.0.52 • SSH • 6d uptime</div>
+                                </div>
+                                <span class="status-dot online"></span>
+                            </div>
+                            <div class="device-item" style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(179,0,255,0.03);border-radius:8px;border:1px solid rgba(179,0,255,0.08);">
+                                <i class="fas fa-laptop neon-purple"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div class="font-term" style="font-size:0.8rem;color:#ddd;">OnePlus 13 — <span class="neon-purple">Termux</span></div>
+                                    <div class="font-term" style="font-size:0.6rem;color:#666;">10.0.0.73 • SSH • 2h uptime</div>
+                                </div>
+                                <span class="status-dot online"></span>
+                            </div>
+                        </div>
+                        <button class="btn-neon" style="width:100%;margin-top:10px;font-size:0.65rem;" onclick="simulateConnect()">
+                            <i class="fas fa-plus-circle"></i> Add Device
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── ROW 4: Activity Log ── -->
+            <div class="glass-card" style="padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span class="font-cyber neon-cyan" style="font-size:0.75rem;letter-spacing:1px;"><i class="fas fa-list"></i> ACTIVITY LOG</span>
+                    <button class="btn-neon" style="padding:4px 12px;font-size:0.6rem;" onclick="pushNotif('info','Logs','Activity log cleared.')">Clear</button>
+                </div>
+                <div class="font-term" style="font-size:0.75rem;max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;" id="activity-log">
+                    <div style="color:#666;">[10:23:47] <span class="neon-green">→</span> Device connected: Pixel 9 Pro</div>
+                    <div style="color:#666;">[10:23:52] <span class="neon-green">→</span> SSH tunnel established on port 4444</div>
+                    <div style="color:#666;">[10:24:01] <span class="neon-cyan">→</span> Command executed: <span style="color:#ddd;">system_info</span></div>
+                    <div style="color:#666;">[10:24:13] <span class="neon-cyan">→</span> Command executed: <span style="color:#ddd;">network_scan</span></div>
+                    <div style="color:#666;">[10:24:28] <span class="warn">⚠</span> High bandwidth usage detected</div>
+                </div>
+            </div>
+
+            <!-- ── FOOTER ── -->
+            <footer style="text-align:center;padding:20px 0 12px;font-size:0.6rem;color:#444;font-family:'Fira Code',monospace;border-top:1px solid rgba(0,255,65,0.04);">
+                CYBERTERMUX v3.1.2 // REMOTE SUPPORT DASHBOARD // ALL CONNECTIONS ENCRYPTED<br/>
+                <span style="color:#333;">© 2026 CyberTermux — Authorized Penetration Testing Platform</span>
+            </footer>
+        </main>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════ JAVASCRIPT ═══════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+
+    <script>
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  1. PARTICLES.JS BACKGROUND
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        document.addEventListener('DOMContentLoaded', function() {
+            const particlesCanvas = document.getElementById('particles-canvas');
+            if (particlesCanvas) {
+                Particles.init({
+                    selector: '#particles-canvas',
+                    color: '#00ff41',
+                    connectParticles: true,
+                    maxParticles: 100,
+                    speed: 0.4,
+                    minDistance: 120,
+                    sizeVariations: 3,
+                    responsive: [
+                        { breakpoint: 640, options: { maxParticles: 50 } }
+                    ]
+                });
+            }
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            //  2. MATRIX RAIN EFFECT
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            const matrixCanvas = document.getElementById('matrix-canvas');
+            const ctx = matrixCanvas.getContext('2d');
+
+            function resizeMatrix() {
+                matrixCanvas.width = window.innerWidth;
+                matrixCanvas.height = window.innerHeight;
+            }
+            resizeMatrix();
+            window.addEventListener('resize', resizeMatrix);
+
+            const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>/{}[]|&^%$#@!';
+            const fontSize = 12;
+            const columns = Math.floor(matrixCanvas.width / fontSize);
+            const drops = Array(columns).fill(1);
+
+            function drawMatrix() {
+                ctx.fillStyle = 'rgba(10, 10, 15, 0.05)';
+                ctx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+                ctx.fillStyle = '#00ff41';
+                ctx.font = fontSize + 'px monospace';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const char = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillStyle = Math.random() > 0.95 ? '#00f0ff' : '#00ff41';
+                    ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+            setInterval(drawMatrix, 50);
+        });
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  3. SIDEBAR
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('open');
+            backdrop.classList.toggle('show');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.remove('open');
+            backdrop.classList.remove('show');
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  4. NOTIFICATION SYSTEM
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function pushNotif(type, title, message) {
+            const container = document.getElementById('notif-container');
+            const colors = {
+                success: { icon: 'fa-check-circle', color: 'var(--neon-green)' },
+                info: { icon: 'fa-info-circle', color: 'var(--neon-cyan)' },
+                warn: { icon: 'fa-exclamation-triangle', color: '#ffaa00' },
+                error: { icon: 'fa-times-circle', color: '#ff3355' }
+            };
+            const c = colors[type] || colors.info;
+            const toast = document.createElement('div');
+            toast.className = 'notif-toast';
+            toast.innerHTML = `
+                <span class="notif-icon" style="color:${c.color}"><i class="fas ${c.icon}"></i></span>
+                <div style="flex:1;min-width:0;">
+                    <div class="font-cyber" style="font-size:0.7rem;color:#ddd;letter-spacing:1px;">${title}</div>
+                    <div class="font-term" style="font-size:0.72rem;color:#aaa;margin-top:2px;">${message}</div>
+                </div>
+                <button class="notif-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+            // trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+            // auto remove after 4.5s
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    toast.classList.add('hide');
+                    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 400);
+                }
+            }, 4500);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  5. TERMINAL SYSTEM
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const terminalBody = document.getElementById('terminal-body');
+
+        function addTerminalLine(html, className = '') {
+            const div = document.createElement('div');
+            div.className = 'log-line' + (className ? ' ' + className : '');
+            div.innerHTML = html;
+            // Insert before the prompt line
+            const promptLine = terminalBody.querySelector('.log-line:last-child');
+            if (promptLine) {
+                terminalBody.insertBefore(div, promptLine);
+            } else {
+                terminalBody.appendChild(div);
+            }
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+            return div;
+        }
+
+        function setPrompt(text) {
+            const last = terminalBody.querySelector('.log-line:last-child');
+            if (last) {
+                last.innerHTML = `<span class="prompt">root@cybertermux:~$</span> <span class="cmd">${text}</span>`;
+            } else {
+                terminalBody.innerHTML = `<div class="log-line"><span class="prompt">root@cybertermux:~$</span> <span class="cmd">${text}</span></div>`;
+            }
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        function clearTerminal() {
+            terminalBody.innerHTML = '';
+            setPrompt('_');
+            pushNotif('info', 'Terminal', 'Terminal buffer cleared.');
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  6. FAKE COMMAND EXECUTION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const commandSequences = [
+            {
+                cmd: 'system_info --all',
+                outputs: [
+                    { delay: 300, html: '<span class="output"> Kernel: 6.1.57-g274a3b2 (aarch64)</span>' },
+                    { delay: 600, html: '<span class="output"> Hostname: pixel9-termux</span>' },
+                    { delay: 900, html: '<span class="output"> Uptime: 14 days, 7 hours, 32 minutes</span>' },
+                    { delay: 1200, html: '<span class="output"> CPU: 8× Cortex-X3 @ 3.0GHz</span>' },
+                    { delay: 1500, html: '<span class="success"> ✓ System info retrieved (1.24s)</span>' },
+                ]
+            },
+            {
+                cmd: 'netstat -tulpn | grep LISTEN',
+                outputs: [
+                    { delay: 400, html: '<span class="output"> tcp   0   0 0.0.0.0:4444   0.0.0.0:*   LISTEN      sshd</span>' },
+                    { delay: 700, html: '<span class="output"> tcp   0   0 0.0.0.0:8080   0.0.0.0:*   LISTEN      termux-api</span>' },
+                    { delay: 1000, html: '<span class="output"> tcp   0   0 127.0.0.1:9050 0.0.0.0:* LISTEN      tor</span>' },
+                    { delay: 1300, html: '<span class="success"> ✓ 3 listening ports found</span>' },
+                ]
+            },
+            {
+                cmd: 'df -h /data',
+                outputs: [
+                    { delay: 300, html: '<span class="output"> Filesystem      Size  Used  Avail  Use%  Mounted on</span>' },
+                    { delay: 600, html: '<span class="output"> /dev/sda1       128G  47G   81G    37%   /data</span>' },
+                    { delay: 900, html: '<span class="success"> ✓ Disk usage: 37%</span>' },
+                ]
+            },
+            {
+                cmd: 'ifconfig wlan0',
+                outputs: [
+                    { delay: 300, html: '<span class="output"> wlan0: flags=4163&lt;UP,BROADCAST,RUNNING&gt;</span>' },
+                    { delay: 600, html: '<span class="output">       inet 10.0.0.47  netmask 255.255.255.0</span>' },
+                    { delay: 900, html: '<span class="output">       inet6 fe80::a4b:c1ff:fe2e:7d3d</span>' },
+                    { delay: 1200, html: '<span class="output">       RX packets: 847231  bytes: 1.2GB</span>' },
+                    { delay: 1500, html: '<span class="success"> ✓ Interface wlan0 is active</span>' },
+                ]
+            },
+            {
+                cmd: 'termux-battery-status',
+                outputs: [
+                    { delay: 300, html: '<span class="output"> {</span>' },
+                    { delay: 500, html: '<span class="output">   "percentage": 87,</span>' },
+                    { delay: 700, html: '<span class="output">   "status": "CHARGING",</span>' },
+                    { delay: 900, html: '<span class="output">   "temperature": 36.2</span>' },
+                    { delay: 1100, html: '<span class="output"> }</span>' },
+                    { delay: 1300, html: '<span class="success"> ✓ Battery data refreshed</span>' },
+                ]
+            }
+        ];
+
+        let isExecuting = false;
+
+        function runFakeCommands() {
+            if (isExecuting) {
+                pushNotif('warn', 'Terminal', 'Command already in progress.');
+                return;
+            }
+            const seq = commandSequences[Math.floor(Math.random() * commandSequences.length)];
+            isExecuting = true;
+            setPrompt(seq.cmd);
+            addTerminalLine('').remove(); // dummy to remove old prompt styling
+
+            // Add command echoed
+            addTerminalLine(`<span class="prompt">root@cybertermux:~$</span> <span class="cmd">${seq.cmd}</span>`);
+
+            // Show a loading bar temporarily
+            const loadDiv = document.createElement('div');
+            loadDiv.className = 'log-line';
+            loadDiv.innerHTML = `<div class="load-bar" style="margin:4px 0;width:180px;"><div class="load-bar-fill" style="width:0%;" id="tmp-loader"></div></div>`;
+            terminalBody.insertBefore(loadDiv, terminalBody.querySelector('.log-line:last-child'));
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+
+            // Animate loader
+            const loader = document.getElementById('tmp-loader');
+            if (loader) {
+                let w = 0;
+                const loaderInterval = setInterval(() => {
+                    w += Math.random() * 15 + 5;
+                    if (w > 100) w = 100;
+                    loader.style.width = w + '%';
+                    if (w >= 100) clearInterval(loaderInterval);
+                }, 100);
+            }
+
+            // Output lines with delays
+            let totalDelay = 0;
+            seq.outputs.forEach((out, idx) => {
+                totalDelay += out.delay;
+                setTimeout(() => {
+                    // Remove loader after first output
+                    if (idx === 0 && loadDiv.parentElement) {
+                        loadDiv.remove();
+                    }
+                    addTerminalLine(out.html);
+                    terminalBody.scrollTop = terminalBody.scrollHeight;
+                    if (idx === seq.outputs.length - 1) {
+                        // Done - set prompt back
+                        setTimeout(() => {
+                            setPrompt('_');
+                            isExecuting = false;
+                            pushNotif('success', 'Terminal', `Command \`${seq.cmd}\` completed.`);
+                        }, 400);
+                    }
+                }, totalDelay);
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  7. CONNECT DEVICE SIMULATION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        let deviceCounter = 3;
+        const deviceNames = [
+            { name: 'Xiaomi 14 Pro', color: 'neon-green', icon: 'fa-mobile-alt', ip: '10.0.0.81' },
+            { name: 'iPad Air M4', color: 'neon-cyan', icon: 'fa-tablet-alt', ip: '10.0.0.92' },
+            { name: 'Nothing Phone 3', color: 'neon-purple', icon: 'fa-mobile-alt', ip: '10.0.0.105' },
+            { name: 'ROG Phone 9', color: 'neon-green', icon: 'fa-gamepad', ip: '10.0.0.117' },
+            { name: 'Fairphone 5', color: 'neon-cyan', icon: 'fa-mobile-alt', ip: '10.0.0.134' },
+        ];
+
+        function simulateConnect() {
+            pushNotif('info', 'Connecting', 'Scanning for nearby Termux devices...');
+            setTimeout(() => {
+                if (deviceCounter >= 7) {
+                    pushNotif('warn', 'Limit', 'Maximum device connections reached (7).');
+                    return;
+                }
+                const dev = deviceNames[deviceCounter - 3] || deviceNames[0];
+                deviceCounter++;
+
+                // Add to device list
+                const list = document.getElementById('device-list');
+                const item = document.createElement('div');
+                item.className = 'device-item';
+                item.style.cssText =
+                'display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(0,255,65,0.03);border-radius:8px;border:1px solid rgba(0,255,65,0.08);animation:fadeInLog 0.4s ease forwards;';
+                item.innerHTML = `
+                    <i class="fas ${dev.icon} ${dev.color}"></i>
+                    <div style="flex:1;min-width:0;">
+                        <div class="font-term" style="font-size:0.8rem;color:#ddd;">${dev.name} — <span class="${dev.color}">Termux</span></div>
+                        <div class="font-term" style="font-size:0.6rem;color:#666;">${dev.ip} • SSH • 0m uptime</div>
+                    </div>
+                    <span class="status-dot online"></span>
+                `;
+                // Insert before the "Add Device" button wrapper (button is outside the list)
+                list.appendChild(item);
+
+                // Update counts
+                document.getElementById('device-count').textContent = deviceCounter;
+                document.getElementById('device-count-small').textContent = deviceCounter;
+
+                // Add terminal log
+                addTerminalLine(`<span class="success">✓</span> <span class="output">Device connected: ${dev.name} (${dev.ip})</span>`);
+
+                // Add activity log
+                const log = document.getElementById('activity-log');
+                const now = new Date().toTimeString().slice(0, 8);
+                const logEntry = document.createElement('div');
+                logEntry.style.cssText = 'color:#666;animation:fadeInLog 0.3s ease forwards;';
+                logEntry.innerHTML = `[${now}] <span class="neon-green">→</span> Device connected: ${dev.name}`;
+                log.insertBefore(logEntry, log.firstChild);
+                while (log.children.length > 20) log.removeChild(log.lastChild);
+
+                pushNotif('success', 'Connected', `${dev.name} linked via Termux SSH.`);
+            }, 2000);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  8. COPY SHARE LINK
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        function copyShareLink() {
+            const link = document.getElementById('share-link-text');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link.textContent).then(() => {
+                    pushNotif('success', 'Copied', 'Share link copied to clipboard.');
+                }).catch(() => {
+                    fallbackCopy(link.textContent);
+                });
+            } else {
+                fallbackCopy(link.textContent);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            pushNotif('success', 'Copied', 'Share link copied to clipboard.');
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  9. BATTERY SIMULATION (live updates)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        let batteryLevel = 87;
+        setInterval(() => {
+            // Simulate slight battery drain then recharge
+            batteryLevel += (Math.random() - 0.48) * 0.5;
+            if (batteryLevel > 100) batteryLevel = 100;
+            if (batteryLevel < 10) batteryLevel = 10;
+            const pct = Math.round(batteryLevel);
+            document.getElementById('battery-pct').textContent = pct;
+            document.getElementById('battery-bar').style.width = pct + '%';
+        }, 3000);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  10. AUTO-RUN INITIAL TERMINAL LOGS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        setTimeout(() => {
+            pushNotif('success', 'System', 'Remote support dashboard initialized.');
+        }, 800);
+
+        // Add a status toggle (just visual)
+        setTimeout(() => {
+            // Show a random status blip
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            // Flash effect at startup
+            setTimeout(() => {
+                dot.style.background = '#ffaa00';
+                dot.style.boxShadow = '0 0 10px rgba(255,170,0,0.7)';
+                text.textContent = 'RECONNECTING';
+                text.style.color = '#ffaa00';
+                setTimeout(() => {
+                    dot.style.background = 'var(--neon-green)';
+                    dot.style.boxShadow = '0 0 10px rgba(0,255,65,0.7)';
+                    text.textContent = 'ONLINE';
+                    text.style.color = 'var(--neon-green)';
+                }, 1200);
+            }, 1500);
+        }, 100);
+
+        // Click on device items to show info
+        document.addEventListener('click', function(e) {
+            const deviceItem = e.target.closest('.device-item');
+            if (deviceItem) {
+                const nameEl = deviceItem.querySelector('.font-term');
+                if (nameEl) {
+                    const name = nameEl.textContent.trim();
+                    pushNotif('info', 'Device', `Selected: ${name}`);
+                }
+            }
+        });
+
+        console.log('%c[CyberTermux] Dashboard loaded successfully.', 'color: #00ff41; font-size: 14px; font-weight: bold;');
+        console.log('%c[CyberTermux] Remote support session active.', 'color: #00f0ff; font-size: 12px;');
+    </script>
+</body>
+</html>
